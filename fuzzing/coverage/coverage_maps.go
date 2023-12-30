@@ -298,6 +298,7 @@ func (cm *ContractCoverageMap) setCoveredAt(codeSize int, pc uint64) (bool, erro
 // or runtime bytecode.
 type CoverageMapBytecodeData struct {
 	executedFlags []byte
+	hitCount      []int
 }
 
 // Reset resets the bytecode coverage map data to be empty.
@@ -331,6 +332,14 @@ func (cm *CoverageMapBytecodeData) IsCovered(pc int) bool {
 	return cm.executedFlags[pc] != 0
 }
 
+func (cm *CoverageMapBytecodeData) HitCount(pc int) int { // If the coverage map bytecode data is nil, this is not covered.
+	if !cm.IsCovered(pc) {
+		return 0
+	}
+
+	return cm.hitCount[pc]
+}
+
 // update creates updates the current CoverageMapBytecodeData with the provided one.
 // Returns a boolean indicating whether new coverage was achieved, or an error if one was encountered.
 func (cm *CoverageMapBytecodeData) update(coverageMap *CoverageMapBytecodeData) (bool, error) {
@@ -342,6 +351,7 @@ func (cm *CoverageMapBytecodeData) update(coverageMap *CoverageMapBytecodeData) 
 	// If the current map has no execution data, simply set it to the provided one.
 	if cm.executedFlags == nil {
 		cm.executedFlags = coverageMap.executedFlags
+		cm.hitCount = coverageMap.hitCount
 		return true, nil
 	}
 
@@ -353,6 +363,7 @@ func (cm *CoverageMapBytecodeData) update(coverageMap *CoverageMapBytecodeData) 
 			cm.executedFlags[i] = 1
 			changed = true
 		}
+		cm.hitCount[i] += coverageMap.hitCount[i]
 	}
 	return changed, nil
 }
@@ -363,14 +374,17 @@ func (cm *CoverageMapBytecodeData) setCoveredAt(codeSize int, pc uint64) (bool, 
 	// If the execution flags don't exist, create them for this code size.
 	if cm.executedFlags == nil {
 		cm.executedFlags = make([]byte, codeSize)
+		cm.hitCount = make([]int, codeSize)
 	}
 
 	// If our program counter is in range, determine if we achieved new coverage for the first time, and update it.
 	if pc < uint64(len(cm.executedFlags)) {
 		if cm.executedFlags[pc] == 0 {
 			cm.executedFlags[pc] = 1
+			cm.hitCount[pc] = 1
 			return true, nil
 		}
+		cm.hitCount[pc] += 1
 		return false, nil
 	}
 	return false, fmt.Errorf("tried to set coverage map out of bounds (pc: %d, code size %d)", pc, len(cm.executedFlags))

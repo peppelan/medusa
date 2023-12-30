@@ -199,6 +199,12 @@
                             {{end}}
                         </td>
 
+                        <td class="row-line-number unselectable">
+                            <div title="This line was executed {{printf "%d" $line.HitCount}} times without reverting.">
+                                {{printf "%d" $line.HitCount}}
+                            </div>
+                        </td>
+
                         {{/* Output a cell for the source line */}}
                         {{/* If a source line is "active", it has a source mapping so we mark it green/red */}}
                         {{/* If a source line is "covered", it is green, otherwise it is red. */}}

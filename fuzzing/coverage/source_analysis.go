@@ -104,6 +104,8 @@ type SourceLineAnalysis struct {
 
 	// IsCoveredReverted indicates whether the source line has been executed before reverting.
 	IsCoveredReverted bool
+
+	HitCount int
 }
 
 // AnalyzeSourceCoverage takes a list of compilations and a set of coverage maps, and performs source analysis
@@ -213,9 +215,11 @@ func analyzeContractSourceCoverage(compilation types.Compilation, sourceAnalysis
 		// Check if the source map element was executed.
 		sourceMapElementCovered := false
 		sourceMapElementCoveredReverted := false
+		sourceMapElementHitCount := 0
 		if contractCoverageData != nil {
 			sourceMapElementCovered = contractCoverageData.successfulCoverage.IsCovered(instructionOffsetLookup[sourceMapElement.Index])
 			sourceMapElementCoveredReverted = contractCoverageData.revertedCoverage.IsCovered(instructionOffsetLookup[sourceMapElement.Index])
+			sourceMapElementHitCount = contractCoverageData.successfulCoverage.HitCount(instructionOffsetLookup[sourceMapElement.Index])
 		}
 
 		// Obtain the source file this element maps to.
@@ -231,6 +235,9 @@ func analyzeContractSourceCoverage(compilation types.Compilation, sourceAnalysis
 					// Set its coverage state
 					sourceLine.IsCovered = sourceLine.IsCovered || sourceMapElementCovered
 					sourceLine.IsCoveredReverted = sourceLine.IsCoveredReverted || sourceMapElementCoveredReverted
+					if sourceMapElementHitCount > sourceLine.HitCount {
+						sourceLine.HitCount = sourceMapElementHitCount
+					}
 
 					// Indicate we matched a source line, so when we stop matching sequentially, we know we can exit
 					// early.
